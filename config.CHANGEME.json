@@ -1,0 +1,14 @@
+{
+  "apiKey": "",
+  "communityId": "",
+  "useConvarForAuthStrings": true,
+  "apiIdType": "discord",
+  "apiUrl": "https://api.sonorancms.com",
+  "enableCommand": true,
+  "command": "clockin",
+  "useAcePermissions": false,
+  "qbcore": {
+    "use": false,
+    "autoClockInJobs": [ "police", "ems", "fire" ]
+  }
+}
