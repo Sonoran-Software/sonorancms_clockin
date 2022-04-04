@@ -5,12 +5,7 @@ async function initialize() {
   utils.infoLog('Checking resource version...');
   await utils.checkVersion(GetResourceMetadata(GetCurrentResourceName(), 'git_repo'), GetResourceMetadata(GetCurrentResourceName(), 'version'));
   try {
-    const _config = require('./config.json');
-    config = Object.create(Object.assign(_config), _config);
-    if (config.useConvarForAuthStrings) {
-      config.apiKey = GetConvar('SONORAN_CMS_API_KEY', 'unknown');
-      config.communityId = GetConvar('SONORAN_CMS_COMMUNITY_ID', 'unknown');
-    }
+    config = require('./config.json');
   } catch (err) {
     if (err) {
       const apiKey = GetConvar('SONORAN_CMS_API_KEY', 'unknown');
@@ -25,6 +20,8 @@ async function initialize() {
             communityId,
             apiIdType,
             apiUrl: cmsApiUrl,
+            enableCommand: false,
+            command: 'clockin',
             qbcore: {
               use: false,
               autoClockInJobs: []
@@ -65,26 +62,35 @@ async function initialize() {
         });
 
         if (config.enableCommand) {
-          RegisterCommand(config.command ?? 'clockin', async (source) => {
+          RegisterCommand(config.command || 'clockin', async (source) => {
             const apiId = getAppropriateIdentifier(source, config.apiIdType);
             await clockPlayerIn(instance, apiId, false).then((inOrOut) => {
+              console.log(inOrOut);
               emitNet('chat:addMessage', source, {
                 color: [255, 0, 0],
                 multiline: false,
-                args: [`^3^*Sonoran CMS^r: Successfully clocked ${inOrOut ? 'in' : 'out'}!`]
+                args: [`^3^*Sonoran CMS:^7 Successfully clocked ${inOrOut ? 'in' : 'out'}!`]
               });
             }).catch((err) => {
-              emitNet('chat:addMessage', source, {
-                color: [255, 0, 0],
-                multiline: false,
-                args: [`^8^*Sonoran CMS^r: An error occured while clocking in...`]
-              });
-              utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})... ${err}`);
+              if (err === 'MUST BE CLOCKED IN FOR AT LEAST ONE MINUTE BEFORE CLOCKING OUT') {
+                emitNet('chat:addMessage', source, {
+                  color: [255, 0, 0],
+                  multiline: false,
+                  args: [`^8^*Sonoran CMS:^7 Unable to clock out due to last clockin being within a minute from when clocking out.`]
+                });
+              } else {
+                emitNet('chat:addMessage', source, {
+                  color: [255, 0, 0],
+                  multiline: false,
+                  args: [`^8^*Sonoran CMS:^7 ${err || 'An error occured while clocking in...'}`]
+                });
+                utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})... ${err}`);
+              }
             });
           }, config.useAcePermissions);
         }
 
-        onNet('SonoranCMS::ClockIn::Server::ClockPlayerIn', (forceClockIn) => {
+        onNet('SonoranCMS::ClockIn::Server::ClockPlayerIn', async (forceClockIn) => {
           const src = global.source;
           const apiId = getAppropriateIdentifier(src, config.apiIdType);
           await clockPlayerIn(instance, apiId, forceClockIn).then((inOrOut) => {
@@ -136,13 +142,13 @@ function getAppropriateIdentifier(source, type) {
 }
 
 async function clockPlayerIn(instance, apiId, forceClockIn) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     await instance.cms.clockInOut({
       apiId,
       forceClockIn: !!forceClockIn
     }).then((clockin) => {
       if (clockin.success) {
-        resolve(clockin.clockIn);
+        resolve(clockin.clockedIn);
       } else {
         reject(clockin.reason);
       }

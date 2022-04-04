@@ -32,15 +32,16 @@ module.exports.checkVersion = async (_gitRepo, _currentVersion) => {
     const gitRepo = `https://raw.githubusercontent.com/${gitRepoSplit[3]}/${gitRepoSplit[4]}`;
     const theFetch = await fetch(`${gitRepo}/master/fxmanifest.lua`);
     if (theFetch.ok) {
-      const data = await theFetch.text();
+      let data = await theFetch.text();
+      data = data.trim().split('\n');
       data.forEach((line) => {
         if (line.startsWith('version')) {
           const versionLineSplit = line.split('\'');
           const latestVersion = Number.parseInt(versionLineSplit[1].split('.').join(''));
           if (currentVersion < latestVersion) {
-            this.infoLog(`New update available for Sonoran ClockIn. Current version: ${versionLineSplit[1]} | Latest Version: ${_currentVersion} | Download new version: ${_gitRepo}/releases/tag/v${versionLineSplit[1]}`);
+            this.infoLog(`New update available for Sonoran Whitelist. Current version: ${versionLineSplit[1]} | Latest Version: ${_currentVersion} | Download new version: ${_gitRepo}/releases/tag/v${versionLineSplit[1]}`);
           } else {
-            this.infoLog(`Sonoran ClockIn is already up to date! Version: ${versionLineSplit[1]}`);
+            this.infoLog(`Sonoran Whitelist is already up to date! Version: ${versionLineSplit[1]}`);
           }
           resolve();
         }
