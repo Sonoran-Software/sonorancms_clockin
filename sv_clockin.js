@@ -65,7 +65,6 @@ async function initialize() {
           RegisterCommand(config.command || 'clockin', async (source) => {
             const apiId = getAppropriateIdentifier(source, config.apiIdType);
             await clockPlayerIn(instance, apiId, false).then((inOrOut) => {
-              console.log(inOrOut);
               emitNet('chat:addMessage', source, {
                 color: [255, 0, 0],
                 multiline: false,
