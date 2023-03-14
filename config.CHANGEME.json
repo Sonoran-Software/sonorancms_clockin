@@ -1,8 +1,4 @@
 {
-  "apiKey": "",
-  "communityId": "",
-  "apiIdType": "discord",
-  "apiUrl": "https://api.sonorancms.com",
   "enableCommand": true,
   "command": "clockin",
   "useAcePermissions": false,

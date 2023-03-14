@@ -1,11 +1,22 @@
 const fetch = require('node-fetch');
 
+/**
+ *
+ * @param {string} message
+ * @param  {errStack} args
+ * @returns
+ */
 module.exports.errorLog = (message, ...args) => {
-  return console.log(`[ERROR - Sonoran ClockIn - ${new Date().toLocaleString()}] ${message}`, args);
+  return console.log(`^1[ERROR - Sonoran CMS ClockIn - ${new Date().toLocaleString()}] ${message}`, args + '^0');
 }
 
+/**
+ *
+ * @param {string} message
+ * @returns
+ */
 module.exports.infoLog = (message) => {
-  return console.log(`[INFO - Sonoran ClockIn - ${new Date().toLocaleString()}] ${message}`);
+  return console.log(`[INFO - Sonoran CMS ClockIn - ${new Date().toLocaleString()}] ${message}`);
 }
 
 module.exports.subIntToName = (subInt) => {
