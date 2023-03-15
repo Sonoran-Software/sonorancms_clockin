@@ -1,5 +1,5 @@
 const utils = require('./sh_utils');
-let apiKey, communityId, apiUrl, serverId, apiIdType
+let apiKey, communityId, apiUrl, serverId, apiIdType, debugMode
 
 RegisterNetEvent('SonoranCMS::Plugins::GiveInfo')
 on('SonoranCMS::Plugins::GiveInfo', async (pluginName, payload) => {
@@ -9,6 +9,7 @@ on('SonoranCMS::Plugins::GiveInfo', async (pluginName, payload) => {
 	apiUrl = payload.apiUrl
 	serverId = payload.serverId
 	apiIdType = payload.apiIdType
+	debugMode = payload.debugMode
 })
 
 function sleep(ms) {
@@ -71,7 +72,8 @@ async function initialize() {
 					apiKey: apiKey,
 					serverId: serverId,
 					product: Sonoran.productEnums.CMS,
-					cmsApiUrl: apiUrl
+					cmsApiUrl: apiUrl,
+					debug: debugMode
 				});
 
 				instance.on('CMS_SETUP_SUCCESSFUL', () => {
