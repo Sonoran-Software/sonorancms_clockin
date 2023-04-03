@@ -34,102 +34,59 @@ async function initialize() {
 		try {
 			config = require('./config.json');
 		} catch (err) {
-			if (err) {
-				const apiKey = GetConvar('SONORAN_CMS_API_KEY', 'unknown');
-				const communityId = GetConvar('SONORAN_CMS_COMMUNITY_ID', 'unknown');
-				const apiIdType = GetConvar('SONORAN_CMS_API_ID_TYPE', 'unknown');
-				const cmsApiUrl = GetConvar('SONORAN_CMS_API_URL', 'https://api.sonorancms.com');
-
-				if (!config) {
-					if (apiKey !== 'unknown' && communityId !== 'unknown' && apiIdType !== 'unknown') {
-						config = {
-							apiKey,
-							communityId,
-							apiIdType,
-							apiUrl: cmsApiUrl,
-							enableCommand: false,
-							command: 'clockin',
-							qbcore: {
-								use: false,
-								autoClockInJobs: []
-							}
-						};
-					}
-				} else {
-					utils.errorLog(err);
-				}
-			}
+			utils.errorLog(err);
 		}
-
 		if (config) {
-			if (apiIdType.toLowerCase() !== 'discord' && apiIdType.toLowerCase() !== 'steam' && apiIdType.toLowerCase() !== 'license') {
-				utils.errorLog('Invalid apiIdType given, must be "discord", "steam", or "license".');
-			} else {
-				const Sonoran = require('@sonoransoftware/sonoran.js');
-				utils.infoLog('Initializing Sonoran ClockIn...');
-				const instance = new Sonoran.Instance({
-					communityId: communityId,
-					apiKey: apiKey,
-					serverId: serverId,
-					product: Sonoran.productEnums.CMS,
-					cmsApiUrl: apiUrl,
-					debug: debugMode
+			global.exports('clockPlayerIn', async (source, forceClockIn = false) => {
+				const apiId = getAppropriateIdentifier(source, apiIdType);
+				await clockPlayerIn(apiId, forceClockIn).then((inOrOut) => {
+					return { success: true, in: inOrOut };
+				}).catch((err) => {
+					return { success: false, err };
 				});
-
-				instance.on('CMS_SETUP_SUCCESSFUL', () => {
-					if (instance.cms.version < 2) return utils.errorLog(`Subscription version too low to use Sonoran ClockIn effectively... Current Sub Version: ${utils.subIntToName(instance.cms.version)} (${instance.cms.version}) | Needed Sub Version: ${utils.subIntToName(2)} (2)`);
-					utils.infoLog(`Sonoran ClockIn Setup Successfully! Current Sub Version: ${utils.subIntToName(instance.cms.version)} (${instance.cms.version})`);
-
-					global.exports('clockPlayerIn', async (source, forceClockIn = false) => {
-						const apiId = getAppropriateIdentifier(source, apiIdType);
-						await clockPlayerIn(instance, apiId, forceClockIn).then((inOrOut) => {
-							return { success: true, in: inOrOut };
-						}).catch((err) => {
-							return { success: false, err };
-						});
-					});
-
-					if (config.enableCommand) {
-						RegisterCommand(config.command || 'clockin', async (source) => {
-							const apiId = getAppropriateIdentifier(source, apiIdType);
-							await clockPlayerIn(instance, apiId, false).then((inOrOut) => {
-								emitNet('chat:addMessage', source, {
-									color: [255, 0, 0],
-									multiline: false,
-									args: [`^3^*Sonoran CMS:^7 Successfully clocked ${inOrOut ? 'in' : 'out'}!`]
-								});
-							}).catch((err) => {
-								if (err === 'MUST BE CLOCKED IN FOR AT LEAST ONE MINUTE BEFORE CLOCKING OUT') {
-									emitNet('chat:addMessage', source, {
-										color: [255, 0, 0],
-										multiline: false,
-										args: [`^8^*Sonoran CMS:^7 Unable to clock out due to last clockin being within a minute from when clocking out.`]
-									});
-								} else {
-									emitNet('chat:addMessage', source, {
-										color: [255, 0, 0],
-										multiline: false,
-										args: [`^8^*Sonoran CMS:^7 ${err || 'An error occured while clocking in...'}`]
-									});
-									utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})... ${err}`);
-								}
+			});
+			if (config.enableCommand) {
+				RegisterCommand(config.command || 'clockin', async (source) => {
+					const apiId = getAppropriateIdentifier(source, apiIdType);
+					await clockPlayerIn(apiId, false).then((inOrOut) => {
+						if (inOrOut == false) {
+							emitNet('chat:addMessage', source, {
+								color: [255, 0, 0],
+								multiline: false,
+								args: [`^3^*Sonoran CMS:^7 Successfully clocked in!`]
 							});
-						}, config.useAcePermissions);
-					}
-
-					onNet('SonoranCMS::ClockIn::Server::ClockPlayerIn', async (forceClockIn) => {
-						const src = global.source;
-						const apiId = getAppropriateIdentifier(src, apiIdType);
-						await clockPlayerIn(instance, apiId, forceClockIn).then((inOrOut) => {
-							utils.infoLog(`Clocked player ${GetPlayerName(src)} (${apiId}) ${inOrOut ? 'in' : 'out'}!`);
-						}).catch((err) => {
-							utils.errorLog(`Failed to clock player ${GetPlayerName(src)} (${apiId}) ${inOrOut ? 'in' : 'out'}... ${err}`);
+						} else if (inOrOut == true) {
+							emitNet('chat:addMessage', source, {
+								color: [255, 0, 0],
+								multiline: false,
+								args: [`^3^*Sonoran CMS:^7 Successfully clocked out!`]
+							});
+						} else {
+							emitNet('chat:addMessage', source, {
+								color: [255, 0, 0],
+								multiline: false,
+								args: [`^8^*Sonoran CMS:^7 ${err || 'An error occured while clocking in...'}`]
+							});
+							utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})...`);
+						}
+					}).catch((err) => {
+						emitNet('chat:addMessage', source, {
+							color: [255, 0, 0],
+							multiline: false,
+							args: [`^8^*Sonoran CMS:^7 ${err || 'An error occured while clocking in...'}`]
 						});
+						utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})... ${err}`);
 					});
-				});
+				}, config.useAcePermissions);
 
-				instance.on('CMS_SETUP_UNSUCCESSFUL', (err) => {
-					utils.errorLog(`Sonoran ClockIn Setup Unsuccessfully! Error provided: ${err}`);
+				onNet('SonoranCMS::ClockIn::Server::ClockPlayerIn', async (forceClockIn) => {
+					const src = global.source;
+					const apiId = getAppropriateIdentifier(src, apiIdType);
+					await clockPlayerIn(apiId, forceClockIn).then((inOrOut) => {
+						utils.infoLog(`Clocked player ${GetPlayerName(src)} (${apiId}) ${inOrOut ? 'out' : 'in'}!`);
+					}).catch((err) => {
+						utils.errorLog(`Failed to clock player ${GetPlayerName(src)} (${apiId}) ${inOrOut ? 'out' : 'in'}...`);
+					});
 				});
 			}
 		} else {
@@ -169,20 +126,16 @@ function getAppropriateIdentifier(source, type) {
 	}
 }
 
-async function clockPlayerIn(instance, apiId, forceClockIn) {
+async function clockPlayerIn(apiId, forceClockIn) {
 	return new Promise(async (resolve, reject) => {
-		await instance.cms.clockInOut({
-			apiId,
-			forceClockIn: !!forceClockIn
-		}).then((clockin) => {
-			if (clockin.success) {
-				resolve(clockin.clockedIn);
+		exports.sonorancms.performApiRequest([{ "apiId": apiId, "forceClockIn": !!forceClockIn }], "CLOCK_IN_OUT", function (res) {
+			res = JSON.parse(res)
+			if (res) {
+				resolve(res.completed);
 			} else {
-				reject(clockin.reason);
+				reject('There was an error')
 			}
-		}).catch((err) => {
-			reject(err);
-		});
+		})
 	});
 }
 
