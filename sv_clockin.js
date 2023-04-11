@@ -65,7 +65,7 @@ async function initialize() {
 							emitNet('chat:addMessage', source, {
 								color: [255, 0, 0],
 								multiline: false,
-								args: [`^8^*Sonoran CMS:^7 ${err || 'An error occured while clocking in...'}`]
+								args: [`^8^*Sonoran CMS:^7 An error occured while clocking in...`]
 							});
 							utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})...`);
 						}
