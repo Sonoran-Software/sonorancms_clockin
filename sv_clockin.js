@@ -16,11 +16,9 @@ function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-on('onServerResourceStart', async (resourceName) => {
-	if (resourceName === 'sonorancms') {
-		utils.infoLog('sonorancms core has been (re)started! reinitializing addon!')
-		initialize()
-	}
+on('SonoranCMS::Started', async (resourceName) => {
+	utils.infoLog('sonorancms core has been (re)started! reinitializing addon!')
+	initialize()
 })
 
 async function initialize() {
