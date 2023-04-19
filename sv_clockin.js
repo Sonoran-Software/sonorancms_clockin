@@ -63,9 +63,9 @@ async function initialize() {
 							emitNet('chat:addMessage', source, {
 								color: [255, 0, 0],
 								multiline: false,
-								args: [`^8^*Sonoran CMS:^7 An error occured while clocking in...`]
+								args: [`^8^*Sonoran CMS:^7 You do not have permissions to use this command...`]
 							});
-							utils.errorLog(`An error occured while clocking in ${GetPlayerName(source)} (${apiId})...`);
+							utils.errorLog(`${GetPlayerName(source)} (${apiId}) did not have perms to clock in...`);
 						}
 					}).catch((err) => {
 						emitNet('chat:addMessage', source, {
